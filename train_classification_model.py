@@ -14,38 +14,47 @@ from joblib import dump, load
 def load_images(X, y, folder):
     files = os.listdir(f'data/{folder}')
     for file_name in files:
-        img = cv2.imread(f'data/{folder}/{file_name}')
-        X.append(img)
+        img = cv2.imread(f'data/{folder}/{file_name}', flags=0)
+        img = np.expand_dims(img, axis=2)
+        X.append(cv2.resize(img, (64, 64)))
         y.append(folder)
 
 def get_augmented_imgs(img):
     augmented_imgs = []
 
     # Gaussian noise
-    gauss_noise = np.zeros(img.shape[:2], dtype=np.uint8)
-    cv2.randn(gauss_noise, 0, random.randint(25, 75))
-    noise_img = cv2.merge([gauss_noise, gauss_noise, gauss_noise])
-    augmented_imgs.append(cv2.add(img, noise_img))
+    # gauss_noise = np.zeros(img.shape[:2], dtype=np.uint8)
+    # cv2.randn(gauss_noise, 0, random.randint(25, 75))
+    # noise_img = np.expand_dims(gauss_noise, axis=2)
+    # # noise_img = cv2.merge([gauss_noise, gauss_noise, gauss_noise])
+    # augmented_imgs.append(cv2.add(img, noise_img))
 
     # Gaussian blur
-    blurred = cv2.GaussianBlur(img, (5, 5), random.uniform(1.5, 4))
-    augmented_imgs.append(blurred)
+    # blurred = cv2.GaussianBlur(img, (5, 5), random.uniform(1.5, 4))
+    # augmented_imgs.append(blurred)
 
     # Brightness/Contrast
-    alpha = random.uniform(1.1, 1.5)     # Contrast
-    beta = random.randint(-30, 30)          # Brightness
-    contrast_img = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
-    augmented_imgs.append(contrast_img)
+    # alpha = random.uniform(1.1, 1.5)     # Contrast
+    # beta = random.randint(-30, 30)          # Brightness
+    # contrast_img = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
+    # augmented_imgs.append(contrast_img)
 
     # Hue/Saturation
-    h, s, v = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))
-    offset = random.randint(-15, 15)
-    h_changed = ((h.astype(int) + offset) % 180).astype(np.uint8)   # type: ignore
-    s_changed = s * random.uniform(0.3, 2)
-    s_changed = np.clip(s_changed, 0, 255).astype(np.uint8)
+    # h, s, v = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))
+    # offset = random.randint(-15, 15)
+    # h_changed = ((h.astype(int) + offset) % 180).astype(np.uint8)   # type: ignore
+    # s_changed = s * random.uniform(0.3, 2)
+    # s_changed = np.clip(s_changed, 0, 255).astype(np.uint8)
+    #
+    # hue_sat_img = cv2.cvtColor(cv2.merge([h_changed, s_changed, v]), cv2.COLOR_HSV2BGR)
+    # augmented_imgs.append(hue_sat_img)
 
-    hue_sat_img = cv2.cvtColor(cv2.merge([h_changed, s_changed, v]), cv2.COLOR_HSV2BGR)
-    augmented_imgs.append(hue_sat_img)
+    # Flip each augmented
+    tmp = []
+    for img in augmented_imgs:
+        tmp.append(cv2.flip(img, 1))
+
+    augmented_imgs += tmp
 
     # Flip
     augmented_imgs.append(cv2.flip(img, 1))
@@ -103,12 +112,18 @@ def train_new_model(X_train, X_test, y_train, y_test, filename):
     X_train_aug = np.concatenate((X_train, np.array(X_train_aug)))
     y_train_aug = np.concatenate((y_train, np.array(y_train_aug)))
 
+    tmp = []
+    for img in X_train_aug:
+        tmp.append(np.expand_dims(img, axis=2))
+
+    X_train_aug = np.array(tmp)
+
     params = {'num_filters': 32, 'dropout': 0.4, 'learning_rate': 0.001, 'batch_size': 16}
 
     print(f"Hyperparameter search complete. Params found: {params}")
 
     # model, history = build_model(params, 10, X_train, y_train)
-    model, history = build_model(params, 10, X_train_aug, y_train_aug)
+    model, history = build_model(params, 50, X_train_aug, y_train_aug)
 
     dump(model, filename=filename)
     print(f"ML Model was saved as '{filename}'.")
@@ -138,6 +153,7 @@ def run_saved_model(X_test, y_test, label_encoder, filename):
 
     report = classification_report(y_test, y_pred, output_dict=True)
 
+    # classes = [0, 1, 2]
     classes = [0, 1, 2, 3]
     class_names = label_encoder.inverse_transform(classes)
 
@@ -153,6 +169,7 @@ def run_saved_model(X_test, y_test, label_encoder, filename):
     # Plot confusion matrix
     cm = metrics.confusion_matrix(y_test, y_pred)
     cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C', 'D'])
+    # cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C'])
     cm_display.plot()
     plt.show()
 

@@ -8,7 +8,7 @@ model = load('classification_model.joblib')
 
 # Initialise camera and video
 cv2.namedWindow('Camera')
-vc = cv2.VideoCapture(0)
+vc = cv2.VideoCapture(1)
 
 if vc.isOpened():
     result, frame = vc.read()
@@ -30,11 +30,14 @@ def process_image(img):
     left = (w - min_dim) // 2
     right = left + min_dim
 
-    square_img = img[top:bottom, left:right]
-    return cv2.resize(square_img, (256, 256))
+    img = img[top:bottom, left:right]
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = np.expand_dims(img, axis=2)
+    return cv2.resize(img, (256, 256))
 
 def make_prediction(frame, model):
-    prediction = model.predict(frame, verbose=0).argmax(axis=1)
+    data = np.array([cv2.resize(frame, (64, 64))])
+    prediction = model.predict(data, verbose=0).argmax(axis=1)
     return prediction[0]
 
 # Runs ~50 times per second
@@ -46,7 +49,7 @@ while result:
     cv2.imshow('Camera', frame)
     result, frame = vc.read()
     frame = process_image(frame)
-    pred = make_prediction(np.array([frame]), model)
+    pred = make_prediction(frame, model)
     frame = cv2.putText(frame, f'{pred}', (40, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
     key = cv2.waitKey(20)
