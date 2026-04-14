@@ -4,14 +4,14 @@ import sys
 import keras
 import numpy as np
 
-import arduino_communication
+# import arduino_communication
 import time
 
 model = load('classification_model.joblib')
 
 # Initialise camera and video
 cv2.namedWindow('Camera')
-vc = cv2.VideoCapture(0) # 0 if using own laptop webcam, 1 if using attached webcam
+vc = cv2.VideoCapture() # 0 if using own laptop webcam, 1 if using attached webcam
 
 if vc.isOpened():
     result, frame = vc.read()
@@ -52,7 +52,7 @@ while result:
         pred = make_prediction(frame, model)
         index = pred.argmax()
         text = f'{index}'
-        arduino_communication.doSomething(index)
+        # arduino_communication.doSomething(index)
         current_time = timer
 
     frame = cv2.putText(frame, text, (40, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
