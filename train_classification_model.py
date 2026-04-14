@@ -23,21 +23,21 @@ def get_augmented_imgs(img):
     augmented_imgs = []
 
     # Gaussian noise
-    # gauss_noise = np.zeros(img.shape[:2], dtype=np.uint8)
-    # cv2.randn(gauss_noise, 0, random.randint(25, 75))
-    # noise_img = np.expand_dims(gauss_noise, axis=2)
-    # # noise_img = cv2.merge([gauss_noise, gauss_noise, gauss_noise])
-    # augmented_imgs.append(cv2.add(img, noise_img))
+    gauss_noise = np.zeros(img.shape[:2], dtype=np.uint8)
+    cv2.randn(gauss_noise, 0, random.randint(25, 75))
+    noise_img = np.expand_dims(gauss_noise, axis=2)
+    # noise_img = cv2.merge([gauss_noise, gauss_noise, gauss_noise])
+    augmented_imgs.append(cv2.add(img, noise_img))
 
     # Gaussian blur
-    # blurred = cv2.GaussianBlur(img, (5, 5), random.uniform(1.5, 4))
-    # augmented_imgs.append(blurred)
+    blurred = cv2.GaussianBlur(img, (5, 5), random.uniform(1.5, 4))
+    augmented_imgs.append(blurred)
 
     # Brightness/Contrast
-    # alpha = random.uniform(1.1, 1.5)     # Contrast
-    # beta = random.randint(-30, 30)          # Brightness
-    # contrast_img = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
-    # augmented_imgs.append(contrast_img)
+    alpha = random.uniform(1.1, 1.5)     # Contrast
+    beta = random.randint(-30, 30)          # Brightness
+    contrast_img = cv2.convertScaleAbs(img, alpha=alpha, beta=beta)
+    augmented_imgs.append(contrast_img)
 
     # Hue/Saturation
     # h, s, v = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))
@@ -80,7 +80,7 @@ def build_model(params, epochs, X_train, y_train):
         keras.layers.Flatten(),
         keras.layers.Dense(64, activation='relu'),
         keras.layers.Dense(32, activation='relu'),
-        keras.layers.Dense(4, activation='softmax')
+        keras.layers.Dense(3, activation='softmax')
     ])
 
     model.summary()
@@ -100,7 +100,7 @@ def build_model(params, epochs, X_train, y_train):
 
     return model, history
 
-def train_new_model(X_train, X_test, y_train, y_test, filename):
+def train_new_model(X_train, y_train, filename):
 
     # Augment the training dataset
     X_train_aug, y_train_aug = [], []
@@ -118,12 +118,12 @@ def train_new_model(X_train, X_test, y_train, y_test, filename):
 
     X_train_aug = np.array(tmp)
 
-    params = {'num_filters': 32, 'dropout': 0.4, 'learning_rate': 0.001, 'batch_size': 16}
+    params = {'num_filters': 64, 'dropout': 0.4, 'learning_rate': 0.001, 'batch_size': 16}
 
     print(f"Hyperparameter search complete. Params found: {params}")
 
     # model, history = build_model(params, 10, X_train, y_train)
-    model, history = build_model(params, 50, X_train_aug, y_train_aug)
+    model, history = build_model(params, 40, X_train_aug, y_train_aug)
 
     dump(model, filename=filename)
     print(f"ML Model was saved as '{filename}'.")
@@ -153,8 +153,8 @@ def run_saved_model(X_test, y_test, label_encoder, filename):
 
     report = classification_report(y_test, y_pred, output_dict=True)
 
-    # classes = [0, 1, 2]
-    classes = [0, 1, 2, 3]
+    classes = [0, 1, 2]
+    # classes = [0, 1, 2, 3]
     class_names = label_encoder.inverse_transform(classes)
 
     for _class in classes:
@@ -168,8 +168,8 @@ def run_saved_model(X_test, y_test, label_encoder, filename):
 
     # Plot confusion matrix
     cm = metrics.confusion_matrix(y_test, y_pred)
-    cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C', 'D'])
-    # cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C'])
+    # cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C', 'D'])
+    cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['A', 'B', 'C'])
     cm_display.plot()
     plt.show()
 
@@ -181,18 +181,18 @@ def main():
     load_images(X, y, 'A')
     load_images(X, y, 'B')
     load_images(X, y, 'C')
-    load_images(X, y, 'D')
+    # load_images(X, y, 'D')
     X = np.array(X)
     y = np.array(y)
 
     label_encoder = LabelEncoder()
     y_encoded = label_encoder.fit_transform(y)
-    X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=.2, random_state=67)
 
     filename = "classification_model.joblib"
 
     # Un-comment line below to train new model
-    model = train_new_model(X_train, X_test, y_train, y_test, filename)
+    model = train_new_model(X_train, y_train, filename)
     run_saved_model(X_test, y_test, label_encoder, filename)
 
     # Convert the model to TensorFlow Lite format

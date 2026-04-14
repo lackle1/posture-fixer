@@ -4,6 +4,9 @@ import sys
 import keras
 import numpy as np
 
+import arduino_communication
+import time
+
 model = load('classification_model.joblib')
 
 # Initialise camera and video
@@ -37,8 +40,8 @@ def process_image(img):
 
 def make_prediction(frame, model):
     data = np.array([cv2.resize(frame, (64, 64))])
-    prediction = model.predict(data, verbose=0).argmax(axis=1)
-    return prediction[0]
+    prediction = model.predict(data, verbose=0)[0]
+    return prediction
 
 # Runs ~50 times per second
 current_time = timer
@@ -46,15 +49,21 @@ while result:
     if timer != -1:
         current_time -= 1
 
-    cv2.imshow('Camera', frame)
     result, frame = vc.read()
     frame = process_image(frame)
     pred = make_prediction(frame, model)
-    frame = cv2.putText(frame, f'{pred}', (40, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    index = pred.argmax()
+    text = f'{index}'
+    frame = cv2.putText(frame, text, (40, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    cv2.imshow('Camera', frame)
 
     key = cv2.waitKey(20)
     if key == 27: # Exit on ESC
         break
+
+    arduino_communication.doSomething(index)
+    if index != 0:
+        time.sleep(2)
 
 vc.release()
 cv2.destroyWindow('Camera')
