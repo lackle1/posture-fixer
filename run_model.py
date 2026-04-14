@@ -18,11 +18,7 @@ if vc.isOpened():
 else:
     result = False
 
-# Use timer if it was passed in sys args
-if len(sys.argv) == 3:
-    timer = int(sys.argv[2])
-else:
-    timer = -1
+timer = 50
 
 def process_image(img):
     h, w = img.shape[:2]
@@ -45,26 +41,26 @@ def make_prediction(frame, model):
 
 # Runs ~50 times per second
 current_time = timer
+text = ''
 while result:
-    if timer != -1:
-        current_time -= 1
+    current_time -= 1
 
     result, frame = vc.read()
     frame = process_image(frame)
-    pred = make_prediction(frame, model)
-    index = pred.argmax()
-    text = f'{index}'
+
+    if current_time < 0:
+        pred = make_prediction(frame, model)
+        index = pred.argmax()
+        text = f'{index}'
+        arduino_communication.doSomething(index)
+        current_time = timer
+
     frame = cv2.putText(frame, text, (40, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
     cv2.imshow('Camera', frame)
 
     key = cv2.waitKey(20)
     if key == 27: # Exit on ESC
         break
-
-    arduino_communication.doSomething(index)
-    time.sleep(1)
-    # if index != 0:
-    #     time.sleep(2)
 
 vc.release()
 cv2.destroyWindow('Camera')
