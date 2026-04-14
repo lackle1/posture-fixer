@@ -43,8 +43,8 @@ def doSomething(prediction):
         print(command)
         serialInst.write(command.encode('utf-8'))
 
-    elif prediction == 3:
-        command = 'option_four'
-        print(command)
-        serialInst.write(command.encode('utf-8'))
+    # elif prediction == 3:
+    #     command = 'option_four'
+    #     print(command)
+    #     serialInst.write(command.encode('utf-8'))
 

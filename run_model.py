@@ -11,7 +11,7 @@ model = load('classification_model.joblib')
 
 # Initialise camera and video
 cv2.namedWindow('Camera')
-vc = cv2.VideoCapture(1)
+vc = cv2.VideoCapture(0) # 0 if using own laptop webcam, 1 if using attached webcam
 
 if vc.isOpened():
     result, frame = vc.read()
@@ -62,8 +62,9 @@ while result:
         break
 
     arduino_communication.doSomething(index)
-    if index != 0:
-        time.sleep(2)
+    time.sleep(1)
+    # if index != 0:
+    #     time.sleep(2)
 
 vc.release()
 cv2.destroyWindow('Camera')
